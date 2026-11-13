@@ -21,6 +21,8 @@ env:
 
 jobs:
   build-and-push-image:
+    # Only run in the original repository; skip entirely in forks.
+    if: github.repository == 'pcottle/learnGitBranching'
     runs-on: ubuntu-latest
     permissions:
       contents: read

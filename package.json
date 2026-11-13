@@ -16,6 +16,7 @@
     "prebuild": "node scripts/generate.js",
     "pretest": "node scripts/generate.js",
     "build": "yarn test && vite build && node scripts/postbuild.js",
+    "build:singlefile": "node scripts/build-singlefile.js",
     "dev": "vite",
     "test": "jasmine",
     "test:coverage": "nyc jasmine",

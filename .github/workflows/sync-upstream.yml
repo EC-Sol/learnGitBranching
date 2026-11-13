@@ -1,0 +1,58 @@
+name: Sync from upstream
+
+# Pull the latest commits from pcottle/learnGitBranching into the
+# main branch. A successful push triggers the release workflow.
+on:
+  schedule:
+    # Daily at 06:00 KST (21:00 UTC the previous day).
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/pcottle/learnGitBranching.git
+          git fetch upstream master
+
+      - name: Check for new upstream commits
+        id: upstream
+        run: |
+          new_commits=$(git rev-list --count HEAD..upstream/master)
+          echo "new_commits=${new_commits}" >> "$GITHUB_OUTPUT"
+          echo "Upstream has ${new_commits} new commit(s)."
+
+      - name: Merge upstream/master
+        if: steps.upstream.outputs.new_commits != '0'
+        run: git merge upstream/master --no-edit
+
+      - name: Push merged result
+        if: steps.upstream.outputs.new_commits != '0'
+        run: git push origin main
+
+      - name: Report merge failure
+        if: failure() && steps.upstream.outputs.new_commits != '0'
+        run: |
+          echo "::error::Merge from upstream/master has conflicts on main."
+          echo "::error::Resolve manually: git fetch upstream master && git merge upstream/master, then push."
+          exit 1

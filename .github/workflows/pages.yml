@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   build:
+    # Only run in the original repository; skip entirely in forks.
+    if: github.repository == 'pcottle/learnGitBranching'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -44,6 +46,7 @@ jobs:
           path: ./build
 
   deploy:
+    if: github.repository == 'pcottle/learnGitBranching'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

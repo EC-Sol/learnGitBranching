@@ -7,6 +7,7 @@ node_modules/
 
 # Build artifacts and asset stuff
 build/*
+build-singlefile/*
 # Generated at build/dev/test time from src/levels/index.js
 src/levels/generated/
 # Generated at build/dev/test time from src/js/intl/strings.js
@@ -60,4 +61,7 @@ VendorLib/clang/lib/c++
 
 # NYC test coverage output
 .nyc_output/
+
+# Offline standalone single-file build output
+build-singlefile/
 

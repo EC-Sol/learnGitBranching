@@ -1,0 +1,70 @@
+name: Release standalone build
+
+# Build the self-contained single-file HTML and attach it to a GitHub Release.
+# Triggered by every push to offline-standalone (including upstream sync merges)
+# and manually via workflow_dispatch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build single-file standalone
+        run: yarn build:singlefile
+        env:
+          CI: true
+
+      - name: Verify build outputs
+        run: |
+          test -s build-singlefile/learnGitBranching-standalone.html || { echo "::error::standalone.html missing"; exit 1; }
+          test -s build-singlefile/learnGitBranching-standalone.min.html || { echo "::error::standalone.min.html missing"; exit 1; }
+          ls -lh build-singlefile/
+
+      - name: Compute release tag
+        id: tag
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "tag=v${VERSION}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release ${TAG} already exists; skipping."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Learn Git Branching standalone v${{ steps.tag.outputs.version }} (${{ steps.tag.outputs.tag }})" \
+            --generate-notes \
+            build-singlefile/learnGitBranching-standalone.html \
+            build-singlefile/learnGitBranching-standalone.min.html
